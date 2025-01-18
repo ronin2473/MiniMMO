@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -5,20 +6,37 @@ using UnityEngine;
 public class MovementNetworkController : NetworkBehaviour
 {
     public NetworkVariable<Vector3> Position = new(writePerm: NetworkVariableWritePermission.Server);
-    private NetworkVariable<string> UserName = new NetworkVariable<string>();
+    private NetworkVariable<FixedString32Bytes> UserName = new();
+    private DisplayUserName displayUserName;
+    private Camera playerCamera;
 
 
     private void Awake()
     {
         Position.OnValueChanged += OnPositionChanged;
+        UserName.OnValueChanged += OnUsernameChanged;
+        displayUserName = GetComponentInChildren<DisplayUserName>();
     }
 
 
     private void OnDestroy()
     {
         Position.OnValueChanged -= OnPositionChanged;
+        UserName.OnValueChanged -= OnUsernameChanged;
     }
 
+    private void Start()
+    {
+        playerCamera = GetComponentInChildren<Camera>();
+        if (IsOwner && playerCamera != null ) 
+        {
+            playerCamera.gameObject.SetActive(true);
+        }
+        else if(playerCamera != null)
+        {   
+            playerCamera.gameObject.SetActive(false);
+        }
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -27,6 +45,7 @@ public class MovementNetworkController : NetworkBehaviour
             string localUserName = PlayerPrefs.GetString("Username");
             SetUsernameServerRpc(localUserName);
         }
+        OnUsernameChanged(string.Empty, UserName.Value);
     }
 
     [ServerRpc]
@@ -38,10 +57,8 @@ public class MovementNetworkController : NetworkBehaviour
     [ServerRpc]
     private void SetUsernameServerRpc(string newUsername)
     {
-        UserName.Value = newUsername; // Update the network variable
+        UserName.Value = newUsername;
     }
-
-
 
     private void Update()
     {
@@ -65,7 +82,6 @@ public class MovementNetworkController : NetworkBehaviour
         }
     }
 
-
     private void OnPositionChanged(Vector3 oldPosition, Vector3 newPosition)
     {
         if (!IsOwner)
@@ -74,8 +90,19 @@ public class MovementNetworkController : NetworkBehaviour
         }
     }
 
+    private void OnUsernameChanged(FixedString32Bytes oldValue, FixedString32Bytes newValue)
+    {
+        if (!IsOwner)
+        {
+            if (displayUserName != null)
+            {
+                displayUserName.UpdateUserNameDisplay(newValue.ToString());
+            }
+        }
+    }
+
     public string GetUserName()
     {
-        return UserName.Value;
+        return UserName.Value.ToString();
     }
 }

@@ -1,11 +1,13 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class StartClient : MonoBehaviour
 {
-    [SerializeField] private InputField userNameInput;
+    [SerializeField] private TMP_InputField userNameInput;
     [SerializeField] private Button confirmButton;
+    [SerializeField] private Canvas canvas;
     [SerializeField] private string defaultUserName;
     private const string UserNameKey = "Username";
 
@@ -27,12 +29,14 @@ public class StartClient : MonoBehaviour
         {
             PlayerPrefs.SetString(UserNameKey, userName);
             PlayerPrefs.Save();
+            canvas.enabled = false;
             ConnectToServer();
         }
         else
         {
             PlayerPrefs.SetString(UserNameKey, defaultUserName);
             PlayerPrefs.Save();
+            canvas.enabled = false;
             ConnectToServer();
         }
     }
